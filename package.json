@@ -1,0 +1,45 @@
+{
+  "name": "sqlite-lens",
+  "displayName": "SQLite Lens",
+  "description": "Explore SQLite databases with a data grid, SQL queries, charts, and schema relationships.",
+  "version": "0.2.0",
+  "publisher": "local-tools",
+  "license": "MIT",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Visualization", "Other"],
+  "keywords": ["sqlite", "sqlite3", "database", "visualization"],
+  "main": "./src/extension.js",
+  "extensionKind": ["workspace"],
+  "capabilities": { "untrustedWorkspaces": { "supported": false }, "virtualWorkspaces": false },
+  "contributes": {
+    "commands": [{ "command": "sqliteLens.open", "title": "SQLite Lens: Open Database", "icon": "$(database)" }],
+    "menus": {
+      "explorer/context": [{ "command": "sqliteLens.open", "when": "resourceExtname =~ /\\.(sqlite3|sqlite|db|db3)$/", "group": "navigation" }]
+    },
+    "customEditors": [{
+      "viewType": "sqliteLens.database",
+      "displayName": "SQLite Lens",
+      "selector": [{ "filenamePattern": "*.sqlite3" }, { "filenamePattern": "*.sqlite" }, { "filenamePattern": "*.db" }, { "filenamePattern": "*.db3" }],
+      "priority": "default"
+    }],
+    "configuration": {
+      "title": "SQLite Lens",
+      "properties": {
+        "sqliteLens.backendPath": { "type": "string", "default": "", "scope": "machine", "description": "Optional path to a custom SQLite Lens Go reader on the extension host. Empty uses the bundled executable." },
+        "sqliteLens.queryTimeout": { "type": "number", "default": 15, "minimum": 1, "maximum": 120, "description": "Maximum seconds per database request." }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build:all": "node scripts/build.js --all",
+    "check": "node --check src/extension.js && node --check src/bridge.js && node --check media/app.js",
+    "pretest": "npm run build",
+    "test": "go test ./... && node --test tests/*.test.js",
+    "prepackage": "npm run build:all && node -e \"require('node:fs').mkdirSync('dist', { recursive: true })\"",
+    "package": "vsce package --allow-missing-repository --out dist/",
+    "pretest:ui": "npm run build",
+    "test:ui": "node tests/ui-smoke.js"
+  },
+  "devDependencies": { "@vscode/vsce": "^3.6.0", "playwright": "^1.58.0" }
+}

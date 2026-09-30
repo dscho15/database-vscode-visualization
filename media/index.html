@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}'; img-src {{cspSource}} data:;">
+  <link rel="stylesheet" href="{{styleUri}}">
+  <title>SQLite Lens</title>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand"><span class="brand-icon" aria-hidden="true">◉</span><strong>SQLite Lens</strong><span class="divider">/</span><span id="database-name">Opening database…</span></div>
+    <div class="header-actions"><span class="badge"><span class="status-dot"></span> Read only</span><button id="refresh" class="quiet">↻ Refresh</button></div>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar">
+      <div class="sidebar-heading">DATABASE EXPLORER <span id="table-count" class="count">0</span></div>
+      <input id="table-search" type="search" placeholder="Find a table…" aria-label="Find a table">
+      <nav id="tables" aria-label="Tables and views"></nav>
+      <div class="database-info"><span class="eyebrow">CONNECTION</span><div id="database-path"></div><div id="database-size"></div><span id="sqlite-version"></span></div>
+    </aside>
+    <main>
+      <div class="page-heading"><div><div class="eyebrow">YOUR DATA, IN FOCUS</div><h1 id="title">Database explorer</h1><p id="subtitle">Browse tables, explore relationships, and turn query results into charts.</p></div><button id="export" disabled>↓ Export CSV</button></div>
+      <nav class="tabs" aria-label="Database views">
+        <button class="tab active" data-tab="data">Data</button>
+        <button class="tab" data-tab="query">SQL editor</button>
+        <button class="tab" data-tab="schema">Schema</button>
+        <button class="tab" data-tab="chart">Chart</button>
+      </nav>
+      <div id="error" class="error" role="alert" hidden></div>
+      <div id="busy" role="status" hidden><span class="spinner"></span><span>Reading database…</span><button id="cancel" class="quiet">Cancel</button></div>
+
+      <section id="data-pane" class="pane">
+        <form id="filter-form" class="toolbar">
+          <label>Filter <select id="filter-column" aria-label="Filter column"><option value="">Choose column</option></select></label>
+          <input id="filter-value" placeholder="Contains exact text…" aria-label="Filter text">
+          <button type="submit">Apply</button><button id="clear-filter" type="button" class="quiet">Clear</button>
+          <label class="push-right">Rows <select id="page-size"><option>50</option><option selected>100</option><option>250</option><option>500</option></select></label>
+        </form>
+      </section>
+      <section id="query-pane" class="pane" hidden>
+        <div class="query-editor"><div class="editor-label"><span>SQL WORKSHEET</span><span>Ctrl / ⌘ + Enter to run</span></div><textarea id="sql" aria-label="SQL query" spellcheck="false" placeholder="SELECT * FROM your_table LIMIT 100;"></textarea></div>
+        <div class="toolbar"><button id="run-query" class="primary">▶ Run query</button><span class="hint">Read-only SQL · up to 1,000 rows · previews capped at 2 MB</span></div>
+      </section>
+      <section id="schema-pane" class="pane" hidden>
+        <div class="section-heading"><h2>Relationships</h2><span class="hint">Declared foreign keys · select a table to inspect</span></div>
+        <div id="relationship-map"></div><div id="schema-detail"></div>
+      </section>
+      <section id="chart-pane" class="pane" hidden>
+        <div class="toolbar chart-controls">
+          <label>Style <select id="chart-type"><option value="line">Line</option><option value="bar">Bar</option><option value="scatter">Scatter</option></select></label>
+          <label>X axis <select id="chart-x"></select></label><label>Y axis <select id="chart-y"></select></label>
+        </div>
+        <div id="chart" class="chart"></div><p id="chart-note" class="hint"></p>
+      </section>
+      <section id="results-pane">
+        <div class="result-heading"><span id="result-label">TABLE PREVIEW</span><span class="hint">Select a cell to inspect its value</span></div>
+        <div id="grid" class="grid"><div class="empty">Select a table to explore its data.</div></div>
+        <footer class="result-footer"><span id="result-status">Ready</span><div id="pagination"><button id="previous" disabled>← Previous</button><span id="page-label">Page 1</span><button id="next" disabled>Next →</button></div></footer>
+      </section>
+    </main>
+  </div>
+  <dialog id="cell-dialog"><div class="section-heading"><h2 id="cell-title">Cell value</h2><button id="close-cell" aria-label="Close cell inspector">✕</button></div><pre id="cell-value"></pre></dialog>
+  <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+</html>
