@@ -6,7 +6,7 @@ A SQLite database explorer inside VS Code. Open a `.sqlite3`, `.sqlite`, `.db`, 
 
 1. In VS Code, run **Extensions: Install from VSIX…** and select `dist/sqlite-lens-0.2.0.vsix`.
 2. Run **SQLite Lens: Open Database**, or right-click a database in Explorer and choose that command.
-3. Open `/srv/shared/forecasting_california/context.sqlite3` to explore the California dataset. If another extension owns the file association, use **Reopen Editor With… → SQLite Lens**.
+3. Select your SQLite database file. If another extension owns the file association, use **Reopen Editor With… → SQLite Lens**.
 
 For a Remote SSH, WSL, or container workspace, install the extension on that remote host. The Go reader runs beside the database on the extension host; database contents are never uploaded to a service.
 
@@ -32,68 +32,68 @@ Browsing requests 100 rows by default (up to 500). BLOB values appear as byte co
 
 The default timeout is 15 seconds, configurable with `sqliteLens.queryTimeout`. Cancel terminates the reader process. No automatic full-table counts or database integrity scans run on open. Pagination uses `LIMIT/OFFSET`, ordered by primary key where available; deep pages and unindexed sorts/filters can still be expensive. Concurrent database changes can shift page boundaries. Views without explicit ordering follow SQLite's result order.
 
-Charts represent only the currently displayed result, not the whole table. Bar charts show at most 80 points. Missing values are omitted. CSV likewise exports displayed rows, keeping BLOB summaries and truncated text visibly marked. Binary tensor formats such as California's `values_blob` are not decoded automatically.
+Charts represent only the currently displayed result, not the whole table. Bar charts show at most 80 points. Missing values are omitted. CSV likewise exports displayed rows, keeping BLOB summaries and truncated text visibly marked. Binary formats stored in BLOB columns are not decoded automatically.
 
-## California examples
+## Example query
 
-Daily context coverage:
-
-```sql
-SELECT day, slot_count, step_ms,
-       length(values_blob) AS payload_bytes
-FROM context_days
-WHERE project_id = 'california'
-ORDER BY day
-LIMIT 365;
-```
-
-Run this query, select **Chart**, and choose `day` for X and `slot_count` for Y.
-
-Forecast volume by origin date:
+For a database with an `orders` table containing an ISO-formatted `created_at` timestamp and a numeric `total` column, summarize daily sales:
 
 ```sql
-SELECT date(origin_timestamp_ms / 1000, 'unixepoch') AS day,
-       count(*) AS batches
-FROM forecast_batches
-WHERE project_id = 'california'
+SELECT date(created_at) AS day,
+       count(*) AS order_count,
+       sum(total) AS revenue
+FROM orders
 GROUP BY day
 ORDER BY day;
 ```
 
-Metrics:
-
-```sql
-SELECT metric_name, metric_value, sample_count, slice_kind, slice_value
-FROM metric_results
-WHERE slice_kind = 'overall'
-ORDER BY metric_name;
-```
+Run this query, select **Chart**, and choose `day` for X and `revenue` for Y. Adapt the table and column names to your database; use **Schema** to inspect the available columns.
 
 ## Develop and verify
 
-Development requires Go 1.26+ and Node.js 22+. The backend uses [ncruces/go-sqlite3](https://github.com/ncruces/go-sqlite3), a cgo-free SQLite implementation, with the standard compatible VFS and SQLite authorizer. Its dependencies are pinned in `go.mod` and `go.sum`. There is no production npm dependency.
+### Install build dependencies
+
+Building from source requires **Go 1.26+** and **Node.js 22+ with npm**. Install them on the machine where you will run the build commands, including the remote host when using Remote SSH, WSL, or a container.
+
+1. **Node.js and npm:** open the [official Node.js download page](https://nodejs.org/en/download), choose an LTS release meeting the version requirement, and select your operating system. On Windows or macOS, run the installer; on Linux, follow the installation commands shown on the page with **npm** selected. npm is included with Node.js, so you do not need to install it separately.
+2. **Go:** download a release matching your operating system and architecture from [Go downloads](https://go.dev/dl/) and follow the [official installation instructions](https://go.dev/doc/install). On Windows, run the `.msi` installer; on macOS, run the `.pkg` installer. On Linux, extract the archive into `/usr/local` as described in the guide and add `/usr/local/go/bin` to your shell's `PATH`.
+
+Open a new terminal after installation and verify that all three commands work:
+
+```sh
+node --version
+npm --version
+go version
+```
+
+### Build an installable extension
+
+From the repository root, install the project dependencies and create the VSIX:
+
+```sh
+npm ci
+npm run package
+```
+
+The build downloads the Go modules automatically. The resulting extension is `dist/sqlite-lens-0.2.0.vsix`; install it using **Extensions: Install from VSIX…** in VS Code.
+
+### Development and checks
+
+The backend uses [ncruces/go-sqlite3](https://github.com/ncruces/go-sqlite3), a cgo-free SQLite implementation, with the standard compatible VFS and SQLite authorizer. Its dependencies are pinned in `go.mod` and `go.sum`. There is no production npm dependency.
 
 The JavaScript extension launches the Go reader using JSON over stdin/stdout. The webview and its message protocol are unchanged. Backend source lives in `cmd/sqlite-lens` and `internal/database`; the reader accepts one request per process and never exposes a write action.
 
 ```sh
-npm ci
 npm run build
 npm run check
 npm test
 npx playwright install chromium
 npm run test:ui
-npm run package
 ```
 
 Press **F5** to build the host binary and launch an Extension Development Host using the included launch configuration. `npm run build` builds the current host target. `npm run package` cross-compiles all six targets with `CGO_ENABLED=0`, collects third-party license notices, and writes the universal VSIX to `dist/`. Linux builds are statically linked and do not require a system SQLite or libc installation.
 
 The Go tests cover read-only enforcement, Unicode and integer preservation, result limits, timeout handling, WAL visibility, schema metadata, and pagination. Node tests exercise the real binary and extension lifecycle; fixtures are also created in Go. The automated browser check uses the shipped HTML/CSS/JavaScript and real Go reader, with a small VS Code message API shim. It covers browsing, pagination, filtering, the cell inspector, relationships, SQL, charts, write denial, cancellation, and narrow layout. It does not replace a full VS Code Extension Host test.
-
-To run it read-only against another database with the California schema:
-
-```sh
-SQLITE_LENS_TEST_DB=/srv/shared/forecasting_california/context.sqlite3 npm run test:ui
-```
 
 `CHROMIUM_PATH` can point to an existing Chromium executable. Screenshots are written to ignored `artifacts/` files. Linux Chromium may require Playwright's system libraries.
 
