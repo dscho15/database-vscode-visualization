@@ -1,0 +1,12 @@
+.vscode/**
+.gitignore
+node_modules/**
+tests/**
+artifacts/**
+dist/**
+package-lock.json
+cmd/**
+internal/**
+scripts/**
+go.mod
+go.sum
